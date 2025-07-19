@@ -92,6 +92,7 @@ v2.0.0 版本现已支持 Jellyfin Server！！！详细配置请参看章节 [J
 wget -O deploy_emby_notifier.sh https://github.com/pjy02/Emby_Notifier/raw/refs/heads/main/deploy_emby_notifier.sh && \
 chmod +x deploy_emby_notifier.sh && \
 ./deploy_emby_notifier.sh
+```
 
 ## docker Run
 
