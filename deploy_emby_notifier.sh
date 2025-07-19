@@ -10,28 +10,6 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-# 检查1panel是否安装
-check_1panel() {
-    if command_exists 1pctl || [ -d "/opt/1panel" ]; then
-        log_info "检测到1panel已安装"
-        return 0
-    else
-        log_info "未检测到1panel"
-        return 1
-    fi
-}
-
-# 检查1panel-network是否存在
-check_1panel_network() {
-    if docker network ls | grep -q "1panel-network"; then
-        log_info "检测到1panel-network网络"
-        return 0
-    else
-        log_info "未检测到1panel-network网络"
-        return 1
-    fi
-}
-
 # 检查 Docker 是否安装
 if ! command_exists docker; then
     log_info "Docker 未安装，开始安装 Docker..."
@@ -50,19 +28,6 @@ if ! command_exists docker-compose; then
     log_info "Docker Compose 安装完成。"
 fi
 
-# 检查1panel并设置网络标志
-use_1panel_network=false
-if check_1panel; then
-    if check_1panel_network; then
-        read -p "检测到1panel，是否增加1panel网络配置？(y/n) " use_network
-        if [ "$use_network" = "y" ]; then
-            use_1panel_network=true
-        fi
-    else
-        log_info "1panel-network网络不存在，跳过网络配置"
-    fi
-fi
-
 # 生成docker-compose.yml的函数
 generate_compose_file() {
     log_info "开始收集配置信息..."
@@ -76,13 +41,14 @@ generate_compose_file() {
     read -p "请输入企业微信 应用凭证秘钥 (可选，留空则不配置): " WECHAT_CORP_SECRET
     read -p "请输入企业微信 应用 agentid (可选，留空则不配置): " WECHAT_AGENT_ID
     read -p "请输入企业微信 用户 id (可选，留空则默认为 @all): " WECHAT_USER_ID
+    read -p "请输入企业微信 消息类型 (可选，留空则默认为 news_notice): " WECHAT_MSG_TYPE
 
     log_info "生成 docker-compose.yml 文件..."
 
     # 删除旧文件（如果存在）
     [ -f "docker-compose.yml" ] && rm -f docker-compose.yml
 
-    # 生成基础结构
+    # 生成基础的 docker-compose.yml 文件
     {
         echo "version: '3'"
         echo "services:"
@@ -93,44 +59,42 @@ generate_compose_file() {
         echo "    image: b1gfac3c4t/emby_notifier_tg:latest"
         echo "    environment:"
         echo "      - TZ=Asia/Shanghai"
-        echo "      - LOG_LEVEL=INFO"
-        echo "      - LOG_EXPORT=False"
-        echo "      - LOG_PATH=/var/tmp/emby_notifier_tg/"
         
-        # 添加用户配置的环境变量
+        # 添加用户配置的环境变量（只添加非空的）
         [ -n "$TMDB_API_TOKEN" ] && echo "      - TMDB_API_TOKEN=$TMDB_API_TOKEN"
         [ -n "$TG_BOT_TOKEN" ] && echo "      - TG_BOT_TOKEN=$TG_BOT_TOKEN"
         [ -n "$TG_CHAT_ID" ] && echo "      - TG_CHAT_ID=$TG_CHAT_ID"
         [ -n "$TVDB_API_KEY" ] && echo "      - TVDB_API_KEY=$TVDB_API_KEY"
-        [ -n "$WECHAT_CORP_ID" ] && echo "      - WECHAT_CORP_ID=$WECHAT_CORP_ID"
-        [ -n "$WECHAT_CORP_SECRET" ] && echo "      - WECHAT_CORP_SECRET=$WECHAT_CORP_SECRET"
-        [ -n "$WECHAT_AGENT_ID" ] && echo "      - WECHAT_AGENT_ID=$WECHAT_AGENT_ID"
         
-        # 处理微信用户ID
-        if [ -n "$WECHAT_USER_ID" ]; then
-            echo "      - WECHAT_USER_ID=$WECHAT_USER_ID"
-        else
-            echo "      - WECHAT_USER_ID=@all"
+        # 固定参数
+        echo "      - LOG_LEVEL=INFO"
+        echo "      - LOG_EXPORT=False"
+        echo "      - LOG_PATH=/var/tmp/emby_notifier_tg/"
+        
+        # 企业微信相关配置（只在有配置时添加）
+        if [ -n "$WECHAT_CORP_ID" ] || [ -n "$WECHAT_CORP_SECRET" ] || [ -n "$WECHAT_AGENT_ID" ]; then
+            [ -n "$WECHAT_CORP_ID" ] && echo "      - WECHAT_CORP_ID=$WECHAT_CORP_ID"
+            [ -n "$WECHAT_CORP_SECRET" ] && echo "      - WECHAT_CORP_SECRET=$WECHAT_CORP_SECRET"
+            [ -n "$WECHAT_AGENT_ID" ] && echo "      - WECHAT_AGENT_ID=$WECHAT_AGENT_ID"
+            
+            # 用户ID和消息类型（有企业微信配置时才添加）
+            if [ -n "$WECHAT_USER_ID" ]; then
+                echo "      - WECHAT_USER_ID=$WECHAT_USER_ID"
+            else
+                echo "      - WECHAT_USER_ID=@all"
+            fi
+            
+            if [ -n "$WECHAT_MSG_TYPE" ]; then
+                echo "      - WECHAT_MSG_TYPE=$WECHAT_MSG_TYPE"
+            else
+                echo "      - WECHAT_MSG_TYPE=news_notice"
+            fi
         fi
         
-        # 添加端口映射（仅在非 host 网络模式下）
-        if [ "$use_1panel_network" = true ]; then
-            echo "    ports:"
-            echo "      - \"8000:8000\""
-        fi
+        echo "    network_mode: \"bridge\""
+        echo "    ports:"
+        echo "      - \"8000:8000\""
         echo "    restart: unless-stopped"
-        
-        # 添加网络配置
-        if [ "$use_1panel_network" = true ]; then
-            echo "    networks:"
-            echo "      - 1panel-network"
-            echo ""
-            echo "networks:"
-            echo "  1panel-network:"
-            echo "    external: true"
-        else
-            echo "    network_mode: \"host\""
-        fi
     } > docker-compose.yml
 
     log_info "docker-compose.yml 文件生成完成"
