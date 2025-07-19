@@ -113,9 +113,11 @@ generate_compose_file() {
             echo "      - WECHAT_USER_ID=@all"
         fi
         
-        # 添加端口映射
-        echo "    ports:"
-        echo "      - \"8000:8000\""
+        # 添加端口映射（仅在非 host 网络模式下）
+        if [ "$use_1panel_network" = true ]; then
+            echo "    ports:"
+            echo "      - \"8000:8000\""
+        fi
         echo "    restart: unless-stopped"
         
         # 添加网络配置
@@ -127,7 +129,7 @@ generate_compose_file() {
             echo "  1panel-network:"
             echo "    external: true"
         else
-            echo "    network_mode: \"bridge\""
+            echo "    network_mode: \"host\""
         fi
     } > docker-compose.yml
 
