@@ -80,6 +80,19 @@ v2.0.0 版本现已支持 Jellyfin Server！！！详细配置请参看章节 [J
 | BARK_SERVER | 可选 | bark 服务地址，默认为公共服务器：https://api.day.app |
 | BARK_DEVICE_KEYS | 可选 | bark 设备密钥，支持设置多个设备密钥，用逗号分隔。e.g. "abcdefqweqwe,qwewqeqeqw,qweqweqweq,qweqweqwe" |
 
+## 一键部署脚本
+
+以下脚本可帮助你快速部署 Emby Notifier，执行步骤如下：
+
+```bash
+# 检查当前目录是否为"Emby Notifier"，如果不是则创建并进入
+[ "$(basename "$(pwd)")" != "Emby Notifier" ] && mkdir -p "Emby Notifier" && cd "Emby Notifier"
+
+# 下载并执行部署脚本
+wget -O deploy_emby_notifier.sh https://github.com/pjy02/Emby_Notifier/raw/refs/heads/main/deploy_emby_notifier.sh && \
+chmod +x deploy_emby_notifier.sh && \
+./deploy_emby_notifier.sh
+
 ## docker Run
 
 ~~~shell
