@@ -86,7 +86,7 @@ v2.0.0 版本现已支持 Jellyfin Server！！！详细配置请参看章节 [J
 
 ```bash
 # 检查当前目录是否为"Emby Notifier"，如果不是则创建并进入
-[ "$(basename "$(pwd)")" != "Emby Notifier" ] && mkdir -p "Emby Notifier" && cd "Emby Notifier"
+[ "$(basename "$(pwd)")" != "EmbyNotifier" ] && mkdir -p "EmbyNotifier" && cd "EmbyNotifier"
 
 # 下载并执行部署脚本
 wget -O deploy_emby_notifier.sh https://github.com/pjy02/Emby_Notifier/raw/refs/heads/main/deploy_emby_notifier.sh && \
