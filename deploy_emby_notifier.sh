@@ -30,6 +30,43 @@ read -p "请输入企业微信 应用凭证秘钥 (可选，留空则不配置):
 read -p "请输入企业微信 应用 agentid (可选，留空则不配置): " WECHAT_AGENT_ID
 read -p "请输入企业微信 用户 id (可选，留空则默认为 @all): " WECHAT_USER_ID
 
+# 初始化环境变量部分的内容
+ENV_VARS=""
+
+# 添加必要的固定环境变量
+ENV_VARS+="      - TZ=Asia/Shanghai\n"
+ENV_VARS+="      - LOG_LEVEL=INFO\n"
+ENV_VARS+="      - LOG_EXPORT=False\n"
+ENV_VARS+="      - LOG_PATH=/var/tmp/emby_notifier_tg/\n"
+
+# 添加用户输入的环境变量，仅当用户输入了内容时才添加
+if [ -n "$TMDB_API_TOKEN" ]; then
+    ENV_VARS+="      - TMDB_API_TOKEN=$TMDB_API_TOKEN\n"
+fi
+if [ -n "$TG_BOT_TOKEN" ]; then
+    ENV_VARS+="      - TG_BOT_TOKEN=$TG_BOT_TOKEN\n"
+fi
+if [ -n "$TG_CHAT_ID" ]; then
+    ENV_VARS+="      - TG_CHAT_ID=$TG_CHAT_ID\n"
+fi
+if [ -n "$TVDB_API_KEY" ]; then
+    ENV_VARS+="      - TVDB_API_KEY=$TVDB_API_KEY\n"
+fi
+if [ -n "$WECHAT_CORP_ID" ]; then
+    ENV_VARS+="      - WECHAT_CORP_ID=$WECHAT_CORP_ID\n"
+fi
+if [ -n "$WECHAT_CORP_SECRET" ]; then
+    ENV_VARS+="      - WECHAT_CORP_SECRET=$WECHAT_CORP_SECRET\n"
+fi
+if [ -n "$WECHAT_AGENT_ID" ]; then
+    ENV_VARS+="      - WECHAT_AGENT_ID=$WECHAT_AGENT_ID\n"
+fi
+if [ -n "$WECHAT_USER_ID" ]; then
+    ENV_VARS+="      - WECHAT_USER_ID=$WECHAT_USER_ID\n"
+else
+    ENV_VARS+="      - WECHAT_USER_ID=@all\n"
+fi
+
 # 生成 docker-compose.yml 文件
 cat << EOF > docker-compose.yml
 version: '3'
@@ -40,18 +77,7 @@ services:
       dockerfile: dockerfile
     image: b1gfac3c4t/emby_notifier_tg:latest
     environment:
-      - TZ=Asia/Shanghai
-      - TMDB_API_TOKEN=$TMDB_API_TOKEN
-      - TG_BOT_TOKEN=$TG_BOT_TOKEN
-      - TG_CHAT_ID=$TG_CHAT_ID
-      - TVDB_API_KEY=$TVDB_API_KEY
-      - WECHAT_CORP_ID=$WECHAT_CORP_ID
-      - WECHAT_CORP_SECRET=$WECHAT_CORP_SECRET
-      - WECHAT_AGENT_ID=$WECHAT_AGENT_ID
-      - WECHAT_USER_ID=${WECHAT_USER_ID:-@all}
-      - LOG_LEVEL=INFO
-      - LOG_EXPORT=False
-      - LOG_PATH=/var/tmp/emby_notifier_tg/
+$ENV_VARS
     network_mode: "bridge"
     ports:
       - "8000:8000"
